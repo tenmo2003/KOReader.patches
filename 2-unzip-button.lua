@@ -9,7 +9,6 @@ local util = require("util")
 local _ = require("gettext")
 local T = ffiUtil.template
 
--- Dirs from cancelled unzips still awaiting their delayed purge; never reuse their names.
 local pending_purge = {}
 
 local function uniqueDir(base)
@@ -49,6 +48,10 @@ local function unzip(file, to_folder)
 		end
 	end
 
+	-- A plain string would get Trapper's bottom-left TrapWidget; InfoMessage is centered.
+	local progress = InfoMessage:new({ text = _("Unzipping…\n\nTap to cancel.") })
+	UIManager:show(progress)
+	UIManager:forceRePaint()
 	local completed, result = Trapper:dismissableRunInSubprocess(function()
 		local arc = Archiver.Reader:new()
 		if not arc:open(file) then
@@ -64,7 +67,9 @@ local function unzip(file, to_folder)
 		end
 		-- Trapper returns nil for empty output, so success needs a non-empty marker.
 		return "ok"
-	end, _("Unzipping…\n\nTap to cancel."), true)
+	end, progress, true)
+	-- Trapper only closes trap widgets it created itself.
+	UIManager:close(progress)
 
 	if not completed then
 		cleanup()
