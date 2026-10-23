@@ -51,7 +51,8 @@ local function unzip(file, to_folder)
 
 	local completed, result = Trapper:dismissableRunInSubprocess(function()
 		local unpacked, unpack_err = Device:unpackArchive(file, dir)
-		return unpacked and "" or tostring(unpack_err)
+		-- Trapper returns nil for empty output, so success needs a non-empty marker.
+		return unpacked and "ok" or tostring(unpack_err)
 	end, _("Unzipping…\n\nTap to cancel."), true)
 
 	if not completed then
@@ -65,11 +66,11 @@ local function unzip(file, to_folder)
 			end)
 		end
 		done(_("Unzip cancelled."), 2)
-	elseif result == "" then
+	elseif result == "ok" then
 		done(_("Unzipped."), 2)
 	else
 		cleanup()
-		done(T(_("Unzip failed: %1"), result))
+		done(T(_("Unzip failed: %1"), result or _("unknown error")))
 	end
 end
 
