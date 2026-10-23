@@ -1,4 +1,4 @@
-local Device = require("device")
+local Archiver = require("ffi/archiver")
 local FileManager = require("apps/filemanager/filemanager")
 local InfoMessage = require("ui/widget/infomessage")
 local Trapper = require("ui/trapper")
@@ -50,9 +50,20 @@ local function unzip(file, to_folder)
 	end
 
 	local completed, result = Trapper:dismissableRunInSubprocess(function()
-		local unpacked, unpack_err = Device:unpackArchive(file, dir)
+		local arc = Archiver.Reader:new()
+		if not arc:open(file) then
+			return tostring(arc.err)
+		end
+		for entry in arc:iterate() do
+			if entry.mode == "file" and not arc:extractToPath(entry.path, dir .. "/" .. entry.path) then
+				return tostring(arc.err)
+			end
+		end
+		if arc.err then
+			return arc.err
+		end
 		-- Trapper returns nil for empty output, so success needs a non-empty marker.
-		return unpacked and "ok" or tostring(unpack_err)
+		return "ok"
 	end, _("Unzipping…\n\nTap to cancel."), true)
 
 	if not completed then
